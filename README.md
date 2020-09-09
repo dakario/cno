@@ -52,6 +52,12 @@ If project-id flag not set, the cli will invite you to select first the company 
 #### select env
 This command allows you to configure an environment of the selected project as the default namespace of you kubeconfig.
 
+Flags:
+
+|        name        |        description                          |
+|--------------------|---------------------------------------------|
+| env-id             |   id of the environment you want to select  |
+
 Use:
 
     cno select env --env-id <your-env-id>
