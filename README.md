@@ -45,7 +45,8 @@ Use:
 
     cno select project --project-id <your-project-id>
     
-NB: If project-id flag not set, the cli will invite you to select first the company and the organization where your project is located and then the project as such.
+###### NB:
+If project-id flag not set, the cli will invite you to select first the company and the organization where your project is located and then the project as such.
 
 #### select env
 This command allows you to configure an environment of the selected project as the default namespace of you kubeconfig.
@@ -54,11 +55,12 @@ Use:
 
     cno select env --env-id <your-env-id>
     
-NB: If env-id flag not set, the cli will invite you to select an environment from the list of project environments to which you have access
+###### NB:
+If env-id flag not set, the cli will invite you to select an environment from the list of project environments to which you have access
 
-#Developer's Guide
+# Developer's Guide
 
-##Create and publish a new release
+## Create and publish a new release
 1. Create a new tag and publish them
 
         git tag -a v0.1.0 -m "First release"
