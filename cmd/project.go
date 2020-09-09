@@ -24,14 +24,10 @@ import (
 // projectCmd represents the project command
 var projectCmd = &cobra.Command{
 	Use:   "project",
-	Aliases: []string{"project"},
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Aliases: []string{""},
+	Short: "Select a project",
+	Long: `This command allows you to have a valid kubeconfig allowing you to interact with the cluster on which the project is deployed.
+The generated kubeconfig contains a certificate with your username as CN signed by the cluster k8s.Which will allow the k8s cluster to identify you.`,
 	Run: func(cmd *cobra.Command, args []string) {
 		config, err := LoadCnoConfig()
 		if err!=nil {
@@ -39,34 +35,51 @@ to quickly create a Cobra application.`,
 			return
 		}
 
-		company, err := chooseCompany()
+		projectIdFlag, err := cmd.Flags().GetString("project-id")
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		org, err := chooseOrganization(company.ID)
-		if err != nil {
-			fmt.Println(err)
-			return
+		var project *Project
+		if projectIdFlag!="" {
+			project, err = getProject(projectIdFlag)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+		}else {
+			company, err := chooseCompany()
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			org, err := chooseOrganization(company.ID)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			project, err = chooseProject(org.ID)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
 		}
-		project, err := chooseProject(org.ID)
-		if err != nil {
-			fmt.Println(err)
-			return
-		}
+
 		if len(project.UidAgent)==0 {
 			fmt.Println("This project is not yet deployed on a cluster!")
 			return
 		}
 
-		err = GenerateKubeConfig(project.UidAgent, company.ID, "default")
+		err = GenerateKubeConfig(project.UidAgent, project.CompanyID, "default")
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		config.CompanyId = company.ID
-		config.OrganizationId = org.ID
+		config.CompanyId = project.CompanyID
+		config.OrganizationId = project.OrganizationID
 		config.ProjectId = project.ID
 		err = SaveConfigOnFileSystem(*config)
 		if err != nil {
@@ -80,8 +93,9 @@ to quickly create a Cobra application.`,
 
 
 func init() {
-	//rootCmd.AddCommand(projectCmd)
 	selectCmd.AddCommand(projectCmd)
+	projectCmd.Flags().String("project-id", "", "id of the project you want to select")
+
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

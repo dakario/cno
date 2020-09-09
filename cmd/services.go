@@ -406,6 +406,54 @@ loop:
 	return &selectedOrg, nil
 }
 
+func getProject(projectId string) (*Project, error){
+	cnoConfig, err := LoadCnoConfig()
+	if err != nil {
+		return nil, err
+	}
+	client := &http.Client{}
+	isTokenRefresed := false
+loop:
+	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+	s.Start()
+	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/projects/"+projectId, nil)
+	req.Header.Add("Authorization", "Bearer "+cnoConfig.AccesToken)
+	res, err := client.Do(req)
+	s.Stop()
+	if err!=nil {
+		return nil, err
+	}
+	if  res.StatusCode == http.StatusUnauthorized {
+		if isTokenRefresed {
+			return nil, errors.New("Token invalid. Maybe your cli does not use the same sso as the cno api")
+		}
+		if len(cnoConfig.AccesToken)>1 {
+			fmt.Println("The token is expired or not correct. You Have to login again!")
+		}
+		err := RefreshToken(cnoConfig)
+		if err != nil {
+			return nil, err
+		}
+		isTokenRefresed = true
+		goto loop
+	}
+	response, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New(string(response))
+	}
+
+	var project Project
+	if err := json.Unmarshal(response, &project); err!=nil {
+		return nil, err
+	}
+
+	return &project, nil
+}
+
+
 func chooseEnv(projectID string) (*Environment, error){
 	cnoConfig, err := LoadCnoConfig()
 	if err != nil {

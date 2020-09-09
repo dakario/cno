@@ -25,13 +25,8 @@ import (
 var envCmd = &cobra.Command{
 	Use:   "environment",
 	Aliases: []string{"env"},
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "Select an environment",
+	Long: `This command allows you to configure an environment of the selected project as the default namespace of you kubeconfig.`,
 	Run: func(cmd *cobra.Command, args []string) {
 
 		config, err := LoadCnoConfig()
@@ -40,19 +35,34 @@ to quickly create a Cobra application.`,
 			return
 		}
 
-		env, err := chooseEnv(config.ProjectId)
+		envIdFlag, err := cmd.Flags().GetString("env-id")
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		err = setDefaultNamespace(env.ID)
-		if err != nil {
-			fmt.Println(err)
-			return
+		if envIdFlag!="" {
+			err = setDefaultNamespace(envIdFlag)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			config.EnvironmentId = envIdFlag
+		}else{
+			env, err := chooseEnv(config.ProjectId)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+
+			err = setDefaultNamespace(env.ID)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+			config.EnvironmentId = env.ID
 		}
 
-		config.EnvironmentId = env.ID
 		err = SaveConfigOnFileSystem(*config)
 		if err != nil {
 			fmt.Println("WARNING error to save data on $HOME/.cno/config. Cause: "+ err.Error())
@@ -66,8 +76,8 @@ to quickly create a Cobra application.`,
 
 
 func init() {
-	//rootCmd.AddCommand(envCmd)
 	selectCmd.AddCommand(envCmd)
+	envCmd.Flags().String("env-id", "", "id of the environment you want to select")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

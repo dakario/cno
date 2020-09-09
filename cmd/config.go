@@ -26,17 +26,13 @@ import (
 	"strings"
 )
 
+var oidcClientSecretDefault = "-1"
 
 // configCmd represents the config command
 var configCmd = &cobra.Command{
 	Use:   "config",
-	Short: "A brief description of your command",
-	Long: `A longer description that spans multiple lines and likely contains examples
-and usage of using your command. For example:
-
-Cobra is a CLI library for Go that empowers applications.
-This application is a tool to generate the needed files
-to quickly create a Cobra application.`,
+	Short: "cno configuration",
+	Long: `This command allows you to configure the cno cli so that it can communicate correctly with the sso and the cno api.`,
 
 	Run: func(cmd *cobra.Command, args []string) {
 
@@ -48,19 +44,51 @@ to quickly create a Cobra application.`,
 			fmt.Println(err)
 			return
 		}
-		if config.ServerUrl, err = read("serveur URL", config.ServerUrl); err!=nil{
+		serverUrlFlag, err := cmd.Flags().GetString("server-url")
+		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		if config.OidcUrl, err = read("oidc realm URL", config.OidcUrl); err!=nil{
+		oidcUrl, err := cmd.Flags().GetString("oidc-url")
+		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		if config.OidcClientId, err = read("oidc client-id", config.OidcClientId); err!=nil{
+		oidcClientId, err := cmd.Flags().GetString("oidc-client-id")
+		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		if config.OidcClientSecret, err = read("oidc client-secret", config.OidcClientSecret); err!=nil{
+		oidcClientSecret, err := cmd.Flags().GetString("oidc-client-secret")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+
+		if serverUrlFlag!="" {
+			config.ServerUrl = serverUrlFlag
+		}else if config.ServerUrl, err = read("serveur URL", config.ServerUrl); err!=nil{
+			fmt.Println(err)
+			return
+		}
+
+		if oidcUrl!="" {
+			config.OidcUrl = oidcUrl
+		}else if config.OidcUrl, err = read("oidc realm URL", config.OidcUrl); err!=nil{
+			fmt.Println(err)
+			return
+		}
+
+		if oidcClientId!="" {
+			config.OidcClientId = oidcClientId
+		}else if config.OidcClientId, err = read("oidc client-id", config.OidcClientId); err!=nil{
+			fmt.Println(err)
+			return
+		}
+
+		if oidcClientSecret!=oidcClientSecretDefault {
+			config.OidcClientSecret = oidcClientSecret
+		}else if config.OidcClientSecret, err = read("oidc client-secret", config.OidcClientSecret); err!=nil{
 			fmt.Println(err)
 			return
 		}
@@ -71,6 +99,24 @@ to quickly create a Cobra application.`,
 			return
 		}
 	},
+}
+
+func init() {
+	rootCmd.AddCommand(configCmd)
+
+	configCmd.Flags().String("server-url", "", "application api URL")
+	configCmd.Flags().String("oidc-url", "", "sso server url")
+	configCmd.Flags().String("oidc-client-id", "", "oidc client-id")
+	configCmd.Flags().String("oidc-client-secret", oidcClientSecretDefault, "secret of the oidc client-id")
+	// Here you will define your flags and configuration settings.
+
+	// Cobra supports Persistent Flags which will work for this command
+	// and all subcommands, e.g.:
+	// configCmd.PersistentFlags().String("foo", "", "A help for foo")
+
+	// Cobra supports local flags which will only run when this command
+	// is called directly, e.g.:
+	// configCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 func read(label, defaultValue string) (string, error){
@@ -86,20 +132,6 @@ func read(label, defaultValue string) (string, error){
 		defaultValue = input
 	}
 	return defaultValue, nil
-}
-
-func init() {
-	rootCmd.AddCommand(configCmd)
-
-	// Here you will define your flags and configuration settings.
-
-	// Cobra supports Persistent Flags which will work for this command
-	// and all subcommands, e.g.:
-	// configCmd.PersistentFlags().String("foo", "", "A help for foo")
-
-	// Cobra supports local flags which will only run when this command
-	// is called directly, e.g.:
-	// configCmd.Flags().BoolP("toggle", "t", false, "Help message for toggle")
 }
 
 func SaveConfigOnFileSystem(config CnoConfig) error{
