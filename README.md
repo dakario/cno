@@ -25,7 +25,8 @@ Use:
     cno config --server-url=https://cno.beopenit.com --oidc-url=https://sso.beopenit.com --oidcclient-id=public --oidc-client-secret=""
 
 
-NB: If an flags is not setted, the cli will invite you to enter his value 
+###### NB:
+If an flags is not setted, the cli will invite you to enter his value 
 
 ### select
 This command have two other subcommands: project and env
