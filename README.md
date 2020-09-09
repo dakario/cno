@@ -1,13 +1,13 @@
-#User Guide
-##Install
+# User Guide
+## Install
 
     go get -u github.com/dakario/cno
     
-######NB:
+###### NB:
 Make sure you have $GOPATH/bin in your path
 
-##Commandes
-####config
+## Commandes
+### config
 This command allows you to configure the cno cli so that it can communicate correctly with the sso and the cno api
 
 Flags:
@@ -27,10 +27,10 @@ Use:
 
 NB: If an flags is not setted, the cli will invite you to enter his value 
 
-####select
+### select
 This command have two other subcommands: project and env
 
-##### select project
+#### select project
 This command allows you to have a valid kubeconfig allowing you to interact with the cluster on which the project is deployed.
 The generated kubeconfig contains a certificate with your username as CN signed by the cluster k8s.
 Which will allow the k8s cluster to identify you. 
@@ -47,7 +47,7 @@ Use:
     
 NB: If project-id flag not set, the cli will invite you to select first the company and the organization where your project is located and then the project as such.
 
-##### select env
+#### select env
 This command allows you to configure an environment of the selected project as the default namespace of you kubeconfig.
 
 Use:
@@ -58,7 +58,7 @@ NB: If env-id flag not set, the cli will invite you to select an environment fro
 
 #Developer's Guide
 
-###Create and publish a new release
+##Create and publish a new release
 1. Create a new tag and publish them
 
         git tag -a v0.1.0 -m "First release"
