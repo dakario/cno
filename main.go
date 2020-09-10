@@ -15,7 +15,7 @@ limitations under the License.
 */
 package main
 
-import "cno/cmd"
+import "github.com/dakario/cno/cmd"
 
 func main() {
 	cmd.Execute()
