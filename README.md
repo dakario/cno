@@ -1,10 +1,10 @@
 # User Guide
 ## Install
 
-    go get -u github.com/dakario/cno
+    GO111MODULE=on go get github.com/dakario/cno
     
 ###### NB:
-Make sure you have $GOPATH/bin in your path
+Make sure you have $GOPATH/bin in your path or move $GOPATH/bin/cno binary in a folder of your path 
 
 ## Commandes
 ### config
