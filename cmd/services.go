@@ -75,7 +75,7 @@ func RefreshToken(config *CnoConfig) error {
 }
 
 
-func GenerateKubeConfig(agentId, companyId, defaultNamespace string) error{
+func GenerateKubeConfig(agentId, organizationId, defaultNamespace string) error{
 	config , err := LoadCnoConfig()
 	if err != nil {
 		return err
@@ -85,7 +85,7 @@ func GenerateKubeConfig(agentId, companyId, defaultNamespace string) error{
 loop:
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.Start()
-	req, _ := http.NewRequest("GET", config.ServerUrl+"/api/v1/agent/k8s-credentials/"+agentId+"/company/"+companyId, nil)
+	req, _ := http.NewRequest("GET", config.ServerUrl+"/api/v1/agent/k8s-credentials/"+agentId+"/organization/"+organizationId, nil)
 	req.Header.Add("Authorization", "Bearer "+config.AccesToken)
 	res, err := client.Do(req)
 	s.Stop()
@@ -177,7 +177,7 @@ func setDefaultNamespace(defaultNamespace string) error{
 }
 
 
-func chooseCompany() (*Company, error){
+func chooseOrganization() (*Organization, error){
 	cnoConfig, err := LoadCnoConfig()
 	if err != nil {
 		return nil, err
@@ -187,7 +187,7 @@ func chooseCompany() (*Company, error){
 loop:
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.Start()
-	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/company/user/me", nil)
+	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/organization/user/me", nil)
 	req.Header.Add("Authorization", "Bearer "+cnoConfig.AccesToken)
 	res, err := client.Do(req)
 	s.Stop()
@@ -213,12 +213,12 @@ loop:
 	if res.StatusCode != http.StatusOK {
 		return nil, errors.New(string(response))
 	}
-	var companies []Company
+	var companies []Organization
 	if err := json.Unmarshal(response, &companies); err!=nil {
 		return nil, err
 	}
 	if len(companies)==0 {
-		return nil, errors.New("You are not a member of any company!")
+		return nil, errors.New("You are not a member of any organization!")
 	}
 
 	templates := &promptui.SelectTemplates{
@@ -230,15 +230,15 @@ loop:
 	}
 
 	searcher := func(input string, index int) bool {
-		company := companies[index]
-		name := strings.Replace(strings.ToLower(company.Name), " ", "", -1)
+		organization := companies[index]
+		name := strings.Replace(strings.ToLower(organization.Name), " ", "", -1)
 		input = strings.Replace(strings.ToLower(input), " ", "", -1)
 
 		return strings.Contains(name, input)
 	}
 
 	prompt := promptui.Select{
-		Label:     "Select a company",
+		Label:     "Select a organization",
 		Items:     companies,
 		Templates: templates,
 		Size:      4,
@@ -251,11 +251,11 @@ loop:
 		return nil, err
 	}
 
-	selectedCompany := companies[i]
-	return &selectedCompany, nil
+	selectedOrganization := companies[i]
+	return &selectedOrganization, nil
 }
 
-func chooseOrganization(companyId string) (*Organization, error){
+func chooseGroup(organizationId string) (*Group, error){
 	cnoConfig, err := LoadCnoConfig()
 	if err != nil {
 		return nil, err
@@ -265,7 +265,7 @@ func chooseOrganization(companyId string) (*Organization, error){
 loop:
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.Start()
-	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/organizations/company/"+companyId+"/user/me", nil)
+	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/groups/organization/"+organizationId+"/user/me", nil)
 	req.Header.Add("Authorization", "Bearer "+cnoConfig.AccesToken)
 	res, err := client.Do(req)
 	s.Stop()
@@ -291,12 +291,12 @@ loop:
 	if res.StatusCode != http.StatusOK {
 		return nil, errors.New(string(response))
 	}
-	var orgs []Organization
+	var orgs []Group
 	if err := json.Unmarshal(response, &orgs); err!=nil {
 		return nil, err
 	}
 	if len(orgs)==0 {
-		return nil, errors.New("You are not a member of any organization of this company!")
+		return nil, errors.New("You are not a member of any group of this organization!")
 	}
 	templates := &promptui.SelectTemplates{
 		Label:    "{{ . }}",
@@ -315,7 +315,7 @@ loop:
 	}
 
 	prompt := promptui.Select{
-		Label:     "Select a Organization",
+		Label:     "Select a Group",
 		Items:     orgs,
 		Templates: templates,
 		Size:      4,
@@ -326,8 +326,8 @@ loop:
 	if err != nil {
 		return nil, err
 	}
-	selectedOrg := orgs[i]
-	return &selectedOrg, nil
+	selectedGroup := orgs[i]
+	return &selectedGroup, nil
 }
 
 func chooseProject(orgId string) (*Project, error){
@@ -340,7 +340,7 @@ func chooseProject(orgId string) (*Project, error){
 loop:
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.Start()
-	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/projects/organization/"+orgId, nil)
+	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/projects/group/"+orgId, nil)
 	req.Header.Add("Authorization", "Bearer "+cnoConfig.AccesToken)
 	res, err := client.Do(req)
 	s.Stop()
@@ -372,7 +372,7 @@ loop:
 		return nil, err
 	}
 	if projects.TotalRecord==0 {
-		return nil, errors.New("You are not a member of any project  of this organization!")
+		return nil, errors.New("You are not a member of any project  of this group!")
 	}
 	templates := &promptui.SelectTemplates{
 		Label:    "{{ . }}",
@@ -402,8 +402,8 @@ loop:
 	if err != nil {
 		return nil, err
 	}
-	selectedOrg := projects.Records[i]
-	return &selectedOrg, nil
+	selectedGroup := projects.Records[i]
+	return &selectedGroup, nil
 }
 
 func getProject(projectId string) (*Project, error){

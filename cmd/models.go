@@ -6,8 +6,8 @@ type CnoConfig struct {
 	OidcClientId     	string `json:"oidcClientId"`
 	OidcClientSecret 	string `json:"oidcClientSecret"`
 	AccesToken       	string `json:"accesToken"`
-	CompanyId        	string `json:"companyId"`
-	OrganizationId     	string `json:"organizationId"`
+	OrganizationId        	string `json:"organizationId"`
+	GroupId     	string `json:"groupId"`
 	ProjectId          	string `json:"projectId"`
 	EnvironmentId      	string `json:"environmentId"`
 }
@@ -18,15 +18,15 @@ type k8sConfig struct {
 	Key 		string `json:"key"`
 }
 
-type Company struct{
+type Organization struct{
 	ID             	string     		`json:"id"`
 	Name            string     		`json:"name"`
 }
 
-type Organization struct {
+type Group struct {
 	ID           string    `json:"id"`
 	Name         string    `json:"name" validate:"required"`
-	CompanyID    string    `json:"companyId"`
+	OrganizationID    string    `json:"organizationId"`
 }
 
 type Environment struct {
@@ -37,8 +37,8 @@ type Environment struct {
 	MemoryUsedPercentage  uint              `json:"memoryUsedPercentage"`
 	StorageUsedPercentage uint              `json:"storageUsedPercentage"`
 	ProjectID             string            `json:"projectId"`
-	OrganizationID        string            `json:"organizationId"`
-	CompanyID             string            `json:"companyId"`
+	GroupID        string            `json:"groupId"`
+	OrganizationID             string            `json:"organizationId"`
 
 }
 
@@ -46,8 +46,8 @@ type Project struct {
 	ID                   string                `json:"id" gorm:"primary_key"`
 	Name                 string                `json:"name" validate:"required"`
 	TypeCluster          string                `json:"typeCluster" validate:"required"`
-	OrganizationID       string                `json:"organizationId"`
-	CompanyID            string                `json:"companyId"`
+	GroupID       string                `json:"groupId"`
+	OrganizationID            string                `json:"organizationId"`
 	Environments         []Environment         `json:"environments" gorm:"foreignkey:ProjectID"`
 	UidAgent             string                `json:"uidAgent"`
 }

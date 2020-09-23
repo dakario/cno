@@ -50,13 +50,13 @@ The generated kubeconfig contains a certificate with your username as CN signed 
 			}
 
 		}else {
-			company, err := chooseCompany()
+			organization, err := chooseOrganization()
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
 
-			org, err := chooseOrganization(company.ID)
+			org, err := chooseGroup(organization.ID)
 			if err != nil {
 				fmt.Println(err)
 				return
@@ -73,13 +73,13 @@ The generated kubeconfig contains a certificate with your username as CN signed 
 			return
 		}
 
-		err = GenerateKubeConfig(project.UidAgent, project.CompanyID, "default")
+		err = GenerateKubeConfig(project.UidAgent, project.OrganizationID, "default")
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		config.CompanyId = project.CompanyID
 		config.OrganizationId = project.OrganizationID
+		config.GroupId = project.GroupID
 		config.ProjectId = project.ID
 		err = SaveConfigOnFileSystem(*config)
 		if err != nil {

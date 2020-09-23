@@ -47,7 +47,7 @@ Use:
     cno select project --project-id <your-project-id>
     
 ###### NB:
-If project-id flag not set, the cli will invite you to select first the company and the organization where your project is located and then the project as such.
+If project-id flag not set, the cli will invite you to select first the organization and the group where your project is located and then the project as such.
 
 #### select env
 This command allows you to configure an environment of the selected project as the default namespace of you kubeconfig.
