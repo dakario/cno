@@ -163,7 +163,9 @@ func setDefaultNamespace(defaultNamespace string) error{
 	cnoContext.AuthInfo  = "cno"
 
 
-	kubeConfig := *clientcmd.GetConfigFromFileOrDie("/Users/user/.kube/config")
+	homeDir, _ := os.UserHomeDir()
+
+	kubeConfig := *clientcmd.GetConfigFromFileOrDie(filepath.Join(homeDir, ".kube/config"))
 	kubeConfig.CurrentContext = "cno"
 	kubeConfig.Contexts["cno"] =  cnoContext
 
