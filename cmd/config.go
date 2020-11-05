@@ -98,6 +98,17 @@ var configCmd = &cobra.Command{
 			fmt.Printf(err.Error())
 			return
 		}
+		organization, err := chooseOrganization()
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		config.OrganizationId = organization.ID
+		err = SaveConfigOnFileSystem(*config)
+		if err != nil {
+			fmt.Printf(err.Error())
+			return
+		}
 	},
 }
 

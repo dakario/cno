@@ -89,6 +89,7 @@ loop:
 	req.Header.Add("Authorization", "Bearer "+config.AccesToken)
 	res, err := client.Do(req)
 	s.Stop()
+	fmt.Println( config.ServerUrl+"/api/v1/agent/k8s-credentials/"+agentId+"/organization/"+organizationId)
 	if err!=nil {
 		return err
 	}
@@ -257,7 +258,7 @@ loop:
 	return &selectedOrganization, nil
 }
 
-func chooseGroup(organizationId string) (*Group, error){
+func chooseTeam(organizationId string) (*Group, error){
 	cnoConfig, err := LoadCnoConfig()
 	if err != nil {
 		return nil, err
@@ -332,7 +333,7 @@ loop:
 	return &selectedGroup, nil
 }
 
-func chooseProject(orgId string) (*Project, error){
+func chooseProject() (*Project, error){
 	cnoConfig, err := LoadCnoConfig()
 	if err != nil {
 		return nil, err
@@ -342,7 +343,7 @@ func chooseProject(orgId string) (*Project, error){
 loop:
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.Start()
-	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/projects/group/"+orgId, nil)
+	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/projects/organization/"+cnoConfig.OrganizationId+"/user/me/", nil)
 	req.Header.Add("Authorization", "Bearer "+cnoConfig.AccesToken)
 	res, err := client.Do(req)
 	s.Stop()
@@ -369,11 +370,11 @@ loop:
 		return nil, errors.New(string(response))
 	}
 
-	var projects ProjectPaginate
+	var projects []Project
 	if err := json.Unmarshal(response, &projects); err!=nil {
 		return nil, err
 	}
-	if projects.TotalRecord==0 {
+	if len(projects)==0 {
 		return nil, errors.New("You are not a member of any project  of this group!")
 	}
 	templates := &promptui.SelectTemplates{
@@ -385,7 +386,7 @@ loop:
 	}
 
 	searcher := func(input string, index int) bool {
-		project := projects.Records[index]
+		project := projects[index]
 		name := strings.Replace(strings.ToLower(project.Name), " ", "", -1)
 		input = strings.Replace(strings.ToLower(input), " ", "", -1)
 
@@ -394,7 +395,7 @@ loop:
 
 	prompt := promptui.Select{
 		Label:     "Select a project",
-		Items:     projects.Records,
+		Items:     projects,
 		Templates: templates,
 		Size:      4,
 		Searcher:  searcher,
@@ -404,7 +405,7 @@ loop:
 	if err != nil {
 		return nil, err
 	}
-	selectedGroup := projects.Records[i]
+	selectedGroup := projects[i]
 	return &selectedGroup, nil
 }
 
@@ -453,6 +454,100 @@ loop:
 	}
 
 	return &project, nil
+}
+
+func getAllProjects() ([]Project, error){
+	cnoConfig, err := LoadCnoConfig()
+	if err != nil {
+		return nil, err
+	}
+	client := &http.Client{}
+	isTokenRefresed := false
+loop:
+	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+	s.Start()
+	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/projects/organization/"+cnoConfig.OrganizationId+"/user/me", nil)
+	req.Header.Add("Authorization", "Bearer "+cnoConfig.AccesToken)
+	res, err := client.Do(req)
+	s.Stop()
+	if err!=nil {
+		return nil, err
+	}
+	if  res.StatusCode == http.StatusUnauthorized {
+		if isTokenRefresed {
+			return nil, errors.New("Token invalid. Maybe your cli does not use the same sso as the cno api")
+		}
+		if len(cnoConfig.AccesToken)>1 {
+			fmt.Println("The token is expired or not correct. You Have to login again!")
+		}
+		err := RefreshToken(cnoConfig)
+		if err != nil {
+			return nil, err
+		}
+		isTokenRefresed = true
+		goto loop
+	}
+	response, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New(string(response))
+	}
+
+	var projects []Project
+	if err := json.Unmarshal(response, &projects); err!=nil {
+		return nil, err
+	}
+
+	return projects, nil
+}
+
+func getEnvByProject(projectID string) ([]Environment, error){
+	cnoConfig, err := LoadCnoConfig()
+	if err != nil {
+		return nil, err
+	}
+	client := &http.Client{}
+	isTokenRefresed := false
+loop:
+	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+	s.Start()
+	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/environments/project/"+projectID, nil)
+	req.Header.Add("Authorization", "Bearer "+cnoConfig.AccesToken)
+	res, err := client.Do(req)
+	s.Stop()
+	if err!=nil {
+		return nil, err
+	}
+	if  res.StatusCode == http.StatusUnauthorized {
+		if isTokenRefresed {
+			return nil, errors.New("Token invalid. Maybe your cli does not use the same sso as the cno api")
+		}
+		if len(cnoConfig.AccesToken)>1 {
+			fmt.Println("The token is expired or not correct. You Have to login again!")
+		}
+		err := RefreshToken(cnoConfig)
+		if err != nil {
+			return nil, err
+		}
+		isTokenRefresed = true
+		goto loop
+	}
+	response, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New(string(response))
+	}
+
+	var envs EnvironmentPaginate
+	if err := json.Unmarshal(response, &envs); err!=nil {
+		return nil, err
+	}
+
+	return envs.Records, nil
 }
 
 
@@ -530,4 +625,48 @@ loop:
 	}
 	selectedEnv := envs.Records[i]
 	return &selectedEnv, nil
+}
+
+func getEnvById(envID string) (*Environment, error){
+	cnoConfig, err := LoadCnoConfig()
+	if err != nil {
+		return nil, err
+	}
+	client := &http.Client{}
+	isTokenRefresed := false
+loop:
+	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
+	s.Start()
+	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/environments/"+envID, nil)
+	req.Header.Add("Authorization", "Bearer "+cnoConfig.AccesToken)
+	res, err := client.Do(req)
+	s.Stop()
+	if err!=nil {
+		return nil, err
+	}
+	if  res.StatusCode == http.StatusUnauthorized {
+		if isTokenRefresed {
+			return nil, errors.New("Token invalid. Maybe your cli does not use the same sso as the cno api")
+		}
+		fmt.Println("The token is expired or not correct. You Have to login again!")
+		err := RefreshToken(cnoConfig)
+		if err != nil {
+			return nil, err
+		}
+		isTokenRefresed = true
+		goto loop
+	}
+	response, err := ioutil.ReadAll(res.Body)
+	if err != nil {
+		return nil, err
+	}
+	if res.StatusCode != http.StatusOK {
+		return nil, errors.New(string(response))
+	}
+
+	var env Environment
+	if err := json.Unmarshal(response, &env); err!=nil {
+		return nil, err
+	}
+	return &env, nil
 }

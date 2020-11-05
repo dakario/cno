@@ -28,56 +28,73 @@ var envCmd = &cobra.Command{
 	Short: "Select an environment",
 	Long: `This command allows you to configure an environment of the selected project as the default namespace of you kubeconfig.`,
 	Run: func(cmd *cobra.Command, args []string) {
-
 		config, err := LoadCnoConfig()
+		if err!=nil {
+			fmt.Println(err)
+			return
+		}
+
+		projectIdFlag, err := cmd.Flags().GetString("p")
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
 
-		envIdFlag, err := cmd.Flags().GetString("env-id")
+		var project *Project
+		var env *Environment
+		if projectIdFlag!="" {
+			project, err = getProject(projectIdFlag)
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		}else {
+			project, err = chooseProject()
+			if err != nil {
+				fmt.Println(err)
+				return
+			}
+		}
+
+		envIdFlag, err := cmd.Flags().GetString("e")
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-
 		if envIdFlag!="" {
-			err = setDefaultNamespace(envIdFlag)
+			env, err = getEnvById(envIdFlag)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
-			config.EnvironmentId = envIdFlag
 		}else{
-			env, err := chooseEnv(config.ProjectId)
+			env, err = chooseEnv(project.ID)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
-
-			err = setDefaultNamespace(env.ID)
-			if err != nil {
-				fmt.Println(err)
-				return
-			}
-			config.EnvironmentId = env.ID
 		}
-
+		err = GenerateKubeConfig(env.AgentID, project.OrganizationID, env.ID)
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
+		config.ProjectId = project.ID
+		config.EnvironmentId = env.ID
 		err = SaveConfigOnFileSystem(*config)
 		if err != nil {
 			fmt.Println("WARNING error to save data on $HOME/.cno/config. Cause: "+ err.Error())
 		}
-
-		fmt.Println("Project selected successfully!")
+		fmt.Println("Environment selected successfully!")
 		fmt.Println("CNO context is generated and setted as the current context of yo kubeConfig!")
-		fmt.Println("Execute 'cno select env' to select an environment as your default namespace")
 	},
 }
 
 
 func init() {
 	selectCmd.AddCommand(envCmd)
-	envCmd.Flags().String("env-id", "", "id of the environment you want to select")
+	envCmd.Flags().String("p", "", "name of the project you want to select")
+	envCmd.Flags().String("e", "", "name of the environment you want to select")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command
