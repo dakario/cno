@@ -89,7 +89,6 @@ loop:
 	req.Header.Add("Authorization", "Bearer "+config.AccesToken)
 	res, err := client.Do(req)
 	s.Stop()
-	fmt.Println( config.ServerUrl+"/api/v1/agent/k8s-credentials/"+agentId+"/organization/"+organizationId)
 	if err!=nil {
 		return err
 	}
@@ -110,7 +109,7 @@ loop:
 		return err
 	}
 	if res.StatusCode != http.StatusOK {
-		return errors.New(string(response))
+		return errors.New("GET k8s-credentials: "+string(response))
 	}
 	k8sConfig := k8sConfig{}
 	if err = json.Unmarshal(response, &k8sConfig); err != nil {
@@ -156,183 +155,6 @@ loop:
 }
 
 
-func setDefaultNamespace(defaultNamespace string) error{
-
-	cnoContext := api.NewContext()
-	cnoContext.Namespace = defaultNamespace
-	cnoContext.Cluster 	 = "cno"
-	cnoContext.AuthInfo  = "cno"
-
-
-	homeDir, _ := os.UserHomeDir()
-
-	kubeConfig := *clientcmd.GetConfigFromFileOrDie(filepath.Join(homeDir, ".kube/config"))
-	kubeConfig.CurrentContext = "cno"
-	kubeConfig.Contexts["cno"] =  cnoContext
-
-	configAccess := clientcmd.NewDefaultClientConfig(kubeConfig, nil).ConfigAccess()
-
-	err := clientcmd.ModifyConfig(configAccess, kubeConfig, true)
-	if err != nil {
-		return err
-	}
-	return nil
-}
-
-
-func chooseOrganization() (*Organization, error){
-	cnoConfig, err := LoadCnoConfig()
-	if err != nil {
-		return nil, err
-	}
-	client := &http.Client{}
-	isTokenRefresed := false
-loop:
-	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-	s.Start()
-	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/organization/user/me", nil)
-	req.Header.Add("Authorization", "Bearer "+cnoConfig.AccesToken)
-	res, err := client.Do(req)
-	s.Stop()
-	if err!=nil {
-		return nil, err
-	}
-	if  res.StatusCode == http.StatusUnauthorized {
-		if isTokenRefresed {
-			return nil, errors.New("Token invalid. Maybe your cli does not use the same sso as the cno api")
-		}
-		fmt.Println("The token is expired or not correct. You Have to login again!")
-		err := RefreshToken(cnoConfig)
-		if err != nil {
-			return nil, err
-		}
-		isTokenRefresed = true
-		goto loop
-	}
-	response, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(string(response))
-	}
-	var companies []Organization
-	if err := json.Unmarshal(response, &companies); err!=nil {
-		return nil, err
-	}
-	if len(companies)==0 {
-		return nil, errors.New("You are not a member of any organization!")
-	}
-
-	templates := &promptui.SelectTemplates{
-		Label:    "{{ . }}",
-		Active:   promptui.Styler(promptui.FGYellow)("▸")+" {{ .Name }} ",
-		Inactive: "  {{ .Name }}",
-		Selected: promptui.IconGood+"  {{ .Name }}",
-
-	}
-
-	searcher := func(input string, index int) bool {
-		organization := companies[index]
-		name := strings.Replace(strings.ToLower(organization.Name), " ", "", -1)
-		input = strings.Replace(strings.ToLower(input), " ", "", -1)
-
-		return strings.Contains(name, input)
-	}
-
-	prompt := promptui.Select{
-		Label:     "Select a organization",
-		Items:     companies,
-		Templates: templates,
-		Size:      4,
-		Searcher:  searcher,
-	}
-
-	i, _, err := prompt.Run()
-
-	if err != nil {
-		return nil, err
-	}
-
-	selectedOrganization := companies[i]
-	return &selectedOrganization, nil
-}
-
-func chooseTeam(organizationId string) (*Group, error){
-	cnoConfig, err := LoadCnoConfig()
-	if err != nil {
-		return nil, err
-	}
-	client := &http.Client{}
-	isTokenRefresed := false
-loop:
-	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
-	s.Start()
-	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/groups/organization/"+organizationId+"/user/me", nil)
-	req.Header.Add("Authorization", "Bearer "+cnoConfig.AccesToken)
-	res, err := client.Do(req)
-	s.Stop()
-	if err!=nil {
-		return nil, err
-	}
-	if  res.StatusCode == http.StatusUnauthorized {
-		if isTokenRefresed {
-			return nil, errors.New("Token invalid. Maybe your cli does not use the same sso as the cno api")
-		}
-		fmt.Println("The token is expired or not correct. You Have to login again!")
-		err := RefreshToken(cnoConfig)
-		if err != nil {
-			return nil, err
-		}
-		isTokenRefresed = true
-		goto loop
-	}
-	response, err := ioutil.ReadAll(res.Body)
-	if err != nil {
-		return nil, err
-	}
-	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(string(response))
-	}
-	var orgs []Group
-	if err := json.Unmarshal(response, &orgs); err!=nil {
-		return nil, err
-	}
-	if len(orgs)==0 {
-		return nil, errors.New("You are not a member of any group of this organization!")
-	}
-	templates := &promptui.SelectTemplates{
-		Label:    "{{ . }}",
-		Active:   promptui.Styler(promptui.FGYellow)("▸")+" {{ .Name }}",
-		Inactive: "  {{ .Name }}",
-		Selected: promptui.IconGood+"  {{ .Name }}",
-
-	}
-
-	searcher := func(input string, index int) bool {
-		org := orgs[index]
-		name := strings.Replace(strings.ToLower(org.Name), " ", "", -1)
-		input = strings.Replace(strings.ToLower(input), " ", "", -1)
-
-		return strings.Contains(name, input)
-	}
-
-	prompt := promptui.Select{
-		Label:     "Select a Group",
-		Items:     orgs,
-		Templates: templates,
-		Size:      4,
-		Searcher:  searcher,
-	}
-
-	i, _, err := prompt.Run()
-	if err != nil {
-		return nil, err
-	}
-	selectedGroup := orgs[i]
-	return &selectedGroup, nil
-}
-
 func chooseProject() (*Project, error){
 	cnoConfig, err := LoadCnoConfig()
 	if err != nil {
@@ -343,7 +165,7 @@ func chooseProject() (*Project, error){
 loop:
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.Start()
-	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/projects/organization/"+cnoConfig.OrganizationId+"/user/me/", nil)
+	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/projects/organization/name/"+cnoConfig.Organization+"/user/me/", nil)
 	req.Header.Add("Authorization", "Bearer "+cnoConfig.AccesToken)
 	res, err := client.Do(req)
 	s.Stop()
@@ -367,7 +189,7 @@ loop:
 		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(string(response))
+		return nil, errors.New("GET all project: "+string(response))
 	}
 
 	var projects []Project
@@ -375,7 +197,7 @@ loop:
 		return nil, err
 	}
 	if len(projects)==0 {
-		return nil, errors.New("You are not a member of any project  of this group!")
+		return nil, errors.New("You are not a member of any project  of this organization!")
 	}
 	templates := &promptui.SelectTemplates{
 		Label:    "{{ . }}",
@@ -409,7 +231,7 @@ loop:
 	return &selectedGroup, nil
 }
 
-func getProject(projectId string) (*Project, error){
+func getProject(projectName, orgName string) (*Project, error){
 	cnoConfig, err := LoadCnoConfig()
 	if err != nil {
 		return nil, err
@@ -419,7 +241,7 @@ func getProject(projectId string) (*Project, error){
 loop:
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.Start()
-	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/projects/"+projectId, nil)
+	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/projects/name/"+projectName+"/organization/name/"+orgName, nil)
 	req.Header.Add("Authorization", "Bearer "+cnoConfig.AccesToken)
 	res, err := client.Do(req)
 	s.Stop()
@@ -444,8 +266,9 @@ loop:
 	if err != nil {
 		return nil, err
 	}
+
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(string(response))
+		return nil, errors.New("GET project: "+string(response))
 	}
 
 	var project Project
@@ -466,7 +289,7 @@ func getAllProjects() ([]Project, error){
 loop:
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.Start()
-	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/projects/organization/"+cnoConfig.OrganizationId+"/user/me", nil)
+	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/projects/organization/name/"+cnoConfig.Organization+"/user/me", nil)
 	req.Header.Add("Authorization", "Bearer "+cnoConfig.AccesToken)
 	res, err := client.Do(req)
 	s.Stop()
@@ -492,7 +315,7 @@ loop:
 		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(string(response))
+		return nil, errors.New("GET all projects: "+string(response))
 	}
 
 	var projects []Project
@@ -513,7 +336,7 @@ func getEnvByProject(projectID string) ([]Environment, error){
 loop:
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.Start()
-	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/environments/project/"+projectID, nil)
+	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/environments/project/name/"+projectID+"/organization/name/"+cnoConfig.Organization, nil)
 	req.Header.Add("Authorization", "Bearer "+cnoConfig.AccesToken)
 	res, err := client.Do(req)
 	s.Stop()
@@ -539,19 +362,19 @@ loop:
 		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(string(response))
+		return nil, errors.New("GET environment by project: "+string(response))
 	}
 
-	var envs EnvironmentPaginate
+	var envs []Environment
 	if err := json.Unmarshal(response, &envs); err!=nil {
 		return nil, err
 	}
 
-	return envs.Records, nil
+	return envs, nil
 }
 
 
-func chooseEnv(projectID string) (*Environment, error){
+func chooseEnv(projectName, organizationName string) (*Environment, error){
 	cnoConfig, err := LoadCnoConfig()
 	if err != nil {
 		return nil, err
@@ -561,7 +384,7 @@ func chooseEnv(projectID string) (*Environment, error){
 loop:
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.Start()
-	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/environments/project/"+projectID, nil)
+	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/environments/project/name/"+projectName+"/organization/name/"+organizationName, nil)
 	req.Header.Add("Authorization", "Bearer "+cnoConfig.AccesToken)
 	res, err := client.Do(req)
 	s.Stop()
@@ -585,14 +408,14 @@ loop:
 		return nil, err
 	}
 	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(string(response))
+		return nil, errors.New("GET environment for project: "+string(response))
 	}
 
-	var envs EnvironmentPaginate
+	var envs []Environment
 	if err := json.Unmarshal(response, &envs); err!=nil {
 		return nil, err
 	}
-	if envs.TotalRecord==0 {
+	if len(envs) == 0 {
 		return nil, errors.New("You have no access to any environments of this project!")
 	}
 	templates := &promptui.SelectTemplates{
@@ -604,7 +427,7 @@ loop:
 	}
 
 	searcher := func(input string, index int) bool {
-		env := envs.Records[index]
+		env := envs[index]
 		name := strings.Replace(strings.ToLower(env.Name), " ", "", -1)
 		input = strings.Replace(strings.ToLower(input), " ", "", -1)
 
@@ -613,7 +436,7 @@ loop:
 
 	prompt := promptui.Select{
 		Label:     "Select an environment",
-		Items:     envs.Records,
+		Items:     envs,
 		Templates: templates,
 		Size:      4,
 		Searcher:  searcher,
@@ -623,11 +446,11 @@ loop:
 	if err != nil {
 		return nil, err
 	}
-	selectedEnv := envs.Records[i]
+	selectedEnv := envs[i]
 	return &selectedEnv, nil
 }
 
-func getEnvById(envID string) (*Environment, error){
+func getEnvByName(envName, projectName, organizationName string) (*Environment, error){
 	cnoConfig, err := LoadCnoConfig()
 	if err != nil {
 		return nil, err
@@ -637,7 +460,7 @@ func getEnvById(envID string) (*Environment, error){
 loop:
 	s := spinner.New(spinner.CharSets[9], 100*time.Millisecond)
 	s.Start()
-	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/environments/"+envID, nil)
+	req, _ := http.NewRequest("GET", cnoConfig.ServerUrl+"/api/v1/environments/name/"+envName+"/project/name/"+projectName+"/organization/name/"+organizationName, nil)
 	req.Header.Add("Authorization", "Bearer "+cnoConfig.AccesToken)
 	res, err := client.Do(req)
 	s.Stop()
@@ -660,8 +483,11 @@ loop:
 	if err != nil {
 		return nil, err
 	}
-	if res.StatusCode != http.StatusOK {
-		return nil, errors.New(string(response))
+
+	if res.StatusCode == http.StatusNotFound {
+		return nil, errors.New("environment not found: "+string(response))
+	}else if res.StatusCode != http.StatusOK {
+		return nil, errors.New("GET environment: "+string(response))
 	}
 
 	var env Environment

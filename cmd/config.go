@@ -64,6 +64,11 @@ var configCmd = &cobra.Command{
 			fmt.Println(err)
 			return
 		}
+		organization, err := cmd.Flags().GetString("org")
+		if err != nil {
+			fmt.Println(err)
+			return
+		}
 
 		if serverUrlFlag!="" {
 			config.ServerUrl = serverUrlFlag
@@ -93,17 +98,12 @@ var configCmd = &cobra.Command{
 			return
 		}
 
-		err = SaveConfigOnFileSystem(*config)
-		if err != nil {
-			fmt.Printf(err.Error())
-			return
-		}
-		organization, err := chooseOrganization()
-		if err != nil {
+		if organization!="" {
+			config.Organization = organization
+		}else if config.Organization, err = read("organization", config.Organization); err!=nil{
 			fmt.Println(err)
 			return
 		}
-		config.OrganizationId = organization.ID
 		err = SaveConfigOnFileSystem(*config)
 		if err != nil {
 			fmt.Printf(err.Error())
@@ -119,6 +119,7 @@ func init() {
 	configCmd.Flags().String("oidc-url", "", "sso server url")
 	configCmd.Flags().String("oidc-client-id", "", "oidc client-id")
 	configCmd.Flags().String("oidc-client-secret", oidcClientSecretDefault, "secret of the oidc client-id")
+	configCmd.Flags().String("org", "", "secret of the oidc client-id")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

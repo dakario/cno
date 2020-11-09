@@ -1,15 +1,15 @@
 package cmd
 
 type CnoConfig struct {
-	ServerUrl        	string `json:"serverUrl"`
-	OidcUrl          	string `json:"oidcUrl"`
-	OidcClientId     	string `json:"oidcClientId"`
-	OidcClientSecret 	string `json:"oidcClientSecret"`
-	AccesToken       	string `json:"accesToken"`
-	OrganizationId     	string `json:"organizationId"`
-	GroupId     		string `json:"groupId"`
-	ProjectId          	string `json:"projectId"`
-	EnvironmentId      	string `json:"environmentId"`
+	ServerUrl        string `json:"serverUrl"`
+	OidcUrl          string `json:"oidcUrl"`
+	OidcClientId     string `json:"oidcClientId"`
+	OidcClientSecret string `json:"oidcClientSecret"`
+	AccesToken       string `json:"accesToken"`
+	Organization     string `json:"organizationId"`
+	GroupId          string `json:"groupId"`
+	Project          string `json:"projectId"`
+	Environment      string `json:"environmentId"`
 }
 
 type k8sConfig struct {

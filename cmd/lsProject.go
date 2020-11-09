@@ -39,10 +39,10 @@ var lsProjectCmd = &cobra.Command{
 			return
 		}
 		for _, project := range projects {
-			if project.ID == config.ProjectId {
-				fmt.Println(" * "+project.ID+" - "+project.Name)
+			if project.ID == config.Project {
+				fmt.Println(" * "+project.Name)
 			}else{
-				fmt.Println("   "+project.ID+" - "+project.Name)
+				fmt.Println("   "+project.Name)
 			}
 		}
 

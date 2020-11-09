@@ -34,53 +34,57 @@ var envCmd = &cobra.Command{
 			return
 		}
 
-		projectIdFlag, err := cmd.Flags().GetString("p")
+		var projectName string
+
+		projectFlag, err := cmd.Flags().GetString("project")
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-
-		var project *Project
-		var env *Environment
-		if projectIdFlag!="" {
-			project, err = getProject(projectIdFlag)
+		if projectFlag !="" {
+			projectName = projectFlag
+			_, err := getProject(projectName, config.Organization)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
 		}else {
-			project, err = chooseProject()
+			project, err := chooseProject()
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
+			projectName =  project.Name
 		}
 
-		envIdFlag, err := cmd.Flags().GetString("e")
+		envFlag, err := cmd.Flags().GetString("env")
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		if envIdFlag!="" {
-			env, err = getEnvById(envIdFlag)
+		var env *Environment
+		if envFlag !="" {
+			env, err = getEnvByName(envFlag, projectName, config.Organization)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
 		}else{
-			env, err = chooseEnv(project.ID)
+			env, err = chooseEnv(projectName, config.Organization)
 			if err != nil {
 				fmt.Println(err)
 				return
 			}
+
 		}
-		err = GenerateKubeConfig(env.AgentID, project.OrganizationID, env.ID)
+
+		err = GenerateKubeConfig(env.AgentID, env.OrganizationID, env.ID)
 		if err != nil {
 			fmt.Println(err)
 			return
 		}
-		config.ProjectId = project.ID
-		config.EnvironmentId = env.ID
+		config.Project = projectName
+		config.Environment = env.Name
 		err = SaveConfigOnFileSystem(*config)
 		if err != nil {
 			fmt.Println("WARNING error to save data on $HOME/.cno/config. Cause: "+ err.Error())
@@ -93,8 +97,8 @@ var envCmd = &cobra.Command{
 
 func init() {
 	selectCmd.AddCommand(envCmd)
-	envCmd.Flags().String("p", "", "name of the project you want to select")
-	envCmd.Flags().String("e", "", "name of the environment you want to select")
+	envCmd.Flags().StringP("project", "p", "","name of the project you want to select")
+	envCmd.Flags().StringP("env", "e",  "","name of the environment you want to select")
 	// Here you will define your flags and configuration settings.
 
 	// Cobra supports Persistent Flags which will work for this command

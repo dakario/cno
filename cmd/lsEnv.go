@@ -48,10 +48,10 @@ var lsEnvCmd = &cobra.Command{
 			return
 		}
 		for _, env := range envs {
-			if env.ID == config.EnvironmentId {
-				fmt.Println(" * "+env.ID+" - "+env.Name)
+			if env.ID == config.Environment {
+				fmt.Println(" * "+env.Name)
 			}else{
-				fmt.Println("   "+env.ID+" - "+env.Name)
+				fmt.Println("   "+env.Name)
 			}
 		}
 	},
