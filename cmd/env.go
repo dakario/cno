@@ -78,7 +78,7 @@ var envCmd = &cobra.Command{
 
 		}
 
-		err = GenerateKubeConfig(env.AgentID, env.OrganizationID, env.ID)
+		err = GenerateKubeConfig(env.AgentID, env.OrganizationID, env.OrganizationName+"-"+env.ProjectName+"-"+env.Name)
 		if err != nil {
 			fmt.Println(err)
 			return

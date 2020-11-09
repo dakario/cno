@@ -40,6 +40,8 @@ type Environment struct {
 	GroupID        		  	string            `json:"groupId"`
 	OrganizationID        	string            `json:"organizationId"`
 	AgentID				  	string            `json:"AgentId"`
+	ProjectName        	  	string            `json:"projectName"`
+	OrganizationName      	string            `json:"organizationName"`
 }
 
 type Project struct {
